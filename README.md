@@ -21,7 +21,7 @@
 # CREMA code
 ./lavis/
 
-# running scripts for CREMA localizer/answerer training/inference
+# running scripts for CREMA training/inference
 ./run_scripts
 
 ```
