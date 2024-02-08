@@ -1,6 +1,6 @@
 # <img src="assets/crema.png" alt="Image description" class="title-icon" style="width: 40px; height: auto;"> CREMA: Multimodal Compositional Video Reasoning via Efficient Modular Adaptation and Fusion
 
-* Authors: [Shoubin Yu](https://yui010206.github.io/), [Jaehong Yoon](https://jaehong31.github.io/), [Mohit Bansal](https://www.cs.unc.edu/~mbansal/)
+* Authors: [Shoubin Yu*](https://yui010206.github.io/), [Jaehong Yoon*](https://jaehong31.github.io/), [Mohit Bansal](https://www.cs.unc.edu/~mbansal/)
 * Paper: [arXiv]()
 * Project Page: [homepage](https://crema-videollm.github.io/)
 * Online Demo: Coming soon
