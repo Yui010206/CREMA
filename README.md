@@ -46,7 +46,7 @@ pip install -e .
 
 ## Download Models
 We initialize query tokens and FC layer for each MMQA in Multimodal Q-Former form pre-trained BLIP-2 model checkpoints.
-We pre-train MMQA-auido and MMQA-3D in CRMEA framework based on [AudioCaps](https://audiocaps.github.io/) and [3D-LLM](https://github.com/UMass-Foundation-Model/3D-LLM) data respectivaly. 
+We pre-train MMQA-audio and MMQA-3D in CRMEA framework based on [AudioCaps](https://audiocaps.github.io/) and [3D-LLM](https://github.com/UMass-Foundation-Model/3D-LLM) data respectively. 
 Both Multimodal Q-Former checkpoints will be released soon.
 
 
@@ -60,7 +60,7 @@ We test our model on:
 
 + [NExT-QA](https://github.com/doc-doc/NExT-QA): we follow SeViLA data [format](https://github.com/Yui010206/SeViLA/tree/main/sevila_data).
 
-We extract various extra modalities from raw video with pre-train models, please refer to each model repo and paper appendix for more details. 
+We extract various extra modalities from raw video with pre-train models, please refer to each model repo and paper appendix for more details. And we will share extracted features soon. 
 
 + [Depth map](https://github.com/isl-org/ZoeDepth)
 
