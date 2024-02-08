@@ -1,0 +1,123 @@
+model:
+  arch: crema
+  model_type: pretrain_flant5xl
+  vit_precision: fp32
+  load_finetuned: True
+  finetuned: ''
+  use_grad_checkpoint: False
+  freeze_vit: True
+  frame_num: 4
+  answer_num: 5
+  task: train_discriminator
+  downstream_task: oeqa
+  modulars: rgb
+  lora_rank: 64
+  lora_dropout: 0.1
+  lora_ckpt: ''
+
+datasets:
+  sqa3d: # name of the dataset builder
+    data_type: [video, pc]
+
+    video_processor:
+      train:
+        name: "blip2_video_train"
+        n_frms: 4
+        image_size: 224
+      eval:
+        name: "blip_video_eval"
+        n_frms: 4
+        image_size: 224
+
+    text_processor:
+      train:
+        name: "blip_question"
+        prompt: ""
+      eval:
+        name: "blip_question"
+
+    # placeholder for pc, we do not use pc processor in the code
+    pc_processor:
+      train:
+        name: "blip_question"
+        prompt: ""
+      eval:
+        name: "blip_question"
+        
+    frame_processor:
+      train:
+        name: "blip2_frames_train"
+        n_frms: 4
+        image_size: 224
+      eval:
+        name: "blip_frames_eval"
+        n_frms: 4
+        image_size: 224
+    
+    depth_processor:
+      train:
+        name: "blip2_frames_train"
+        n_frms: 4
+        image_size: 224
+      eval:
+        name: "blip_frames_eval"
+        n_frms: 4
+        image_size: 224
+
+    build_info:
+      annotations:
+        train:
+          url: 
+            - /nas-ssd2/shoubin/datasets/3D-LLM/finetune_qa_jsonfiles/SQA3D/ScanQA_format/SQA_train.json
+          storage: 
+            - /nas-ssd2/shoubin/datasets/3D-LLM/finetune_qa_jsonfiles/SQA3D/ScanQA_format/SQA_train.json
+        test:
+          url: 
+            - /nas-ssd2/shoubin/datasets/3D-LLM/finetune_qa_jsonfiles/SQA3D/ScanQA_format/SQA_test.json
+          storage: 
+            - /nas-ssd2/shoubin/datasets/3D-LLM/finetune_qa_jsonfiles/SQA3D/ScanQA_format/SQA_test.json
+        val:
+          url: 
+            - /nas-ssd2/shoubin/datasets/3D-LLM/finetune_qa_jsonfiles/SQA3D/ScanQA_format/SQA_test.json
+          storage: 
+            - /nas-ssd2/shoubin/datasets/3D-LLM/finetune_qa_jsonfiles/SQA3D/ScanQA_format/SQA_test.json
+      video:
+        storage: /nas-ssd2/shoubin/datasets/sqa3d/video/
+      pc:
+        storage: /nas-ssd2/shoubin/datasets/scannet_feat/
+
+run:
+  task: sqa3d
+  # optimizer
+  lr_sched: "linear_warmup_cosine_lr"
+  init_lr: 1e-4
+  min_lr: 1e-5
+  warmup_lr: 1e-8
+  warmup_steps: 1000
+  weight_decay: 0.05
+  max_epoch: 100
+  batch_size_train: 2
+  batch_size_eval: 4
+  num_workers: 4
+  accum_grad_iters: 1
+
+  max_len: 40
+  min_len: 1
+  num_beams: 5
+ 
+  inference_method: "generate"
+
+  seed: 42
+  output_dir: "output/BLIP2/3DQA"
+
+  amp: True
+  evaluate: False
+  train_splits: ["train"]
+  valid_splits: ["val"]
+  test_splits: ["val"]
+
+  device: "cuda"
+  world_size: 16
+  dist_url: "env://"
+  distributed: True
+  find_unused_parameters: True
