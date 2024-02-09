@@ -4,7 +4,7 @@
  # For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
 
 datasets:
-  nextqa_3d: # name of the dataset builder
+  nextqa: # name of the dataset builder
     # data_dir: ${env.data_dir}/datasets
     data_type: videos # [images|videos|features]
     modality_type: 'rgb' # [RGB|D|OF|SN]

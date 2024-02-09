@@ -61,11 +61,11 @@ class MSVDQABuilder(VideoQABuilder):
 # multi-choice videoqa
 # to do update it 
 @registry.register_builder("nextqa")
-class NextQA3DBuilder(MCVideoQABuilder):
+class NextQABuilder(MCVideoQABuilder):
     DATASET_CONFIG_DICT = {
         "default": "configs/datasets/nextqa/defaults_qa.yaml",
     }
-
+    
 # @registry.register_builder("perception_test")
 # class NextQA3DBuilder(MCVideoQA3DBuilder):
 #     DATASET_CONFIG_DICT = {

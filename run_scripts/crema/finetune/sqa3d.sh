@@ -8,7 +8,7 @@ CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.run --nproc_per_node=2 --ma
 model.finetuned=${ckpt} \
 model.frame_num=4 \
 model.downstream_task='oeqa' \
-model.modalities='rgb_pc_depth' \
+model.modalities='rgb_pc' \
 datasets.sqa3d.data_type=['pc','video'] \
 run.batch_size_train=16 \
 run.batch_size_eval=24 \

@@ -21,7 +21,7 @@ model:
   lora_ckpt: ''
 
 datasets:
-  nextqa_3d: # name of the dataset builder
+  nextqa: # name of the dataset builder
     vis_processor:
         train:
           name: "blip2_frames_train"
