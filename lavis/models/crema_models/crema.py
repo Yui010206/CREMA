@@ -56,8 +56,7 @@ class CREMA(Blip2Base):
         downstream_task='mcqa', # caption / oeqa / mcqa
         lora_rank=64,
         lora_layer=None,
-        lora_dropout=0.1,
-        fuse_with_base_modality=False):
+        lora_dropout=0.1):
 
         """
         apply_lemmatizer: when set to True, postprocess predict_answers() result with lemmas.
@@ -65,8 +64,16 @@ class CREMA(Blip2Base):
         super().__init__()
         
         self.task = task #.split('_')
-        self.modalities = modalities.split('_')
-        self.fuse_with_base_modality=fuse_with_base_modality
+        modalities = modalities.split('_')
+        self.modalities = []
+        self.skip = []
+        for m in modalities:
+            if 'skip' in m:
+                self.modalities.append(m.split('-')[0])
+                self.skip.append('-skip')
+            else:
+                self.modalities.append(m)
+                self.skip.append('')
 
         print(self.modalities)
         num_features = 1408
@@ -159,6 +166,7 @@ class CREMA(Blip2Base):
                 self.Qformer.config.hidden_size, self.t5_model.config.hidden_size)
             
             self.projection_audio = nn.Linear(self.audio_encoder.num_features, num_features)
+            # nn.init.normal_(self.projection_audio.weight, std=0.01)
             self.ln_audio = nn.LayerNorm(num_features)
             
         if 'pc' in self.modalities:
@@ -421,9 +429,12 @@ class CREMA(Blip2Base):
         query_tokens = getattr(self, f"query_tokens_{modality}")
         query_tokens = query_tokens.expand(embeds.shape[0], -1, -1)
 
+        skip_flag = self.skip[self.modalities.index(modality)]
+        modality_ = modality + skip_flag
+
         query_output = self.Qformer.bert(
             query_embeds=query_tokens, encoder_hidden_states=embeds,
-            encoder_attention_mask=atts, return_dict=True, modular=modality)
+            encoder_attention_mask=atts, return_dict=True, modular=modality_)
         
         query = query_output.last_hidden_state.clone()
         inputs_t5 = project(query_output.last_hidden_state)
@@ -640,7 +651,7 @@ class CREMA(Blip2Base):
                         max_new_tokens=max_length,
                         min_length=min_length,
                         length_penalty=length_penalty,
-                    )
+                        )
                     pred_ans = self.t5_tokenizer.batch_decode(outputs, skip_special_tokens=True)
                 
         out['output_text'] = pred_ans
@@ -743,6 +754,7 @@ class CREMA(Blip2Base):
         lora_rank = cfg.get("lora_rank", 64)
         lora_layer = cfg.get("lora_layer", None)
         lora_dropout = cfg.get("lora_dropout", 0.1)
+        mmqa_ckpt = cfg.get("mmqa_ckpt", '')
 
         model = cls(
             img_size=img_size,
@@ -766,7 +778,7 @@ class CREMA(Blip2Base):
         )
         
         model.load_checkpoint_from_config(cfg)
-        model.load_lora('')
+        model.load_mmqa(mmqa_ckpt)
         print_trainable_parameters(model)
 
         return model

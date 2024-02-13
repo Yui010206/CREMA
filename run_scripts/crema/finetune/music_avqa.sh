@@ -1,7 +1,7 @@
 result_dir="result/AVQA/"
 
-exp_name='avqa_audio+video'
-ckpt='crema_ckpt.pth'
+exp_name='avqa_video+audio'
+ckpt='crema_initial.pth'
 CUDA_VISIBLE_DEVICES=0,1,2 python -m torch.distributed.run --nproc_per_node=3 --master_port 29503 train.py \
 --cfg-path lavis/projects/crema/train/music_avqa.yaml \
 --options run.output_dir=${result_dir}${exp_name} \
@@ -17,8 +17,8 @@ run.max_epoch=20 \
 run.warmup_steps=1000 \
 run.accum_grad_iters=1
 
-exp_name='avqa_audio+video+flow'
-ckpt='crema_ckpt.pth'
+exp_name='avqa_video+audio+flow'
+ckpt='crema_initial.pth'
 CUDA_VISIBLE_DEVICES=0,1,2 python -m torch.distributed.run --nproc_per_node=3 --master_port 29503 train.py \
 --cfg-path lavis/projects/crema/train/music_avqa.yaml \
 --options run.output_dir=${result_dir}${exp_name} \
@@ -36,7 +36,7 @@ run.accum_grad_iters=1
 
 
 exp_name='avqa_espresso'
-ckpt='crema_ckpt.pth'
+ckpt='crema_initial.pth'
 CUDA_VISIBLE_DEVICES=0,1,2 python -m torch.distributed.run --nproc_per_node=3 --master_port 29503 train.py \
 --cfg-path lavis/projects/crema/train/music_avqa.yaml \
 --options run.output_dir=${result_dir}${exp_name} \

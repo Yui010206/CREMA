@@ -18,7 +18,7 @@ model:
   modulars: rgb
   lora_rank: 64
   lora_dropout: 0.1
-  lora_ckpt: ''
+  mmqa_ckpt: ''
 
 datasets:
   musicavqa_mm_instruct: # name of the dataset builder
@@ -68,10 +68,10 @@ datasets:
       templates: null
 
       audio:
-        storage: /nas-ssd2/shoubin/videos/music-avqa/MUSIC-AVQA-videos-Real/
+        storage: /nas-hdd/shoubin/videos/music-avqa/MUSIC-AVQA-videos-Real/
 
       video:
-        storage: /nas-ssd2/shoubin/videos/music-avqa/MUSIC-AVQA-videos-Real/
+        storage: /nas-hdd/shoubin/videos/music-avqa/MUSIC-AVQA-videos-Real/
 
 
 run:

@@ -13,7 +13,7 @@ model:
   modulars: rgb
   lora_rank: 64
   lora_dropout: 0.1
-  lora_ckpt: ''
+  mmqa_ckpt: ''
 
 datasets:
   sqa3d: # name of the dataset builder

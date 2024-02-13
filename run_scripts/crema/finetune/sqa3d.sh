@@ -1,7 +1,7 @@
 result_dir="result/SQA3D/"
 
-exp_name='sqa3d_rgb+3d'
-ckpt='crema_ckpt.pth'
+exp_name='sqa3d_video+3d'
+ckpt='crema_initial.pth'
 CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.run --nproc_per_node=2 --master_port 29506 train.py \
 --cfg-path lavis/projects/crema/train/sqa3d.yaml \
 --options run.output_dir=${result_dir}${exp_name} \
@@ -17,8 +17,8 @@ run.max_epoch=20 \
 run.warmup_steps=1000 \
 run.accum_grad_iters=1
 
-exp_name='sqa3d_rgb+3d+depth'
-ckpt='crema_ckpt.pth'
+exp_name='sqa3d_video+3d+depth'
+ckpt='crema_initial.pth'
 CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.run --nproc_per_node=2 --master_port 29506 train.py \
 --cfg-path lavis/projects/crema/train/sqa3d.yaml \
 --options run.output_dir=${result_dir}${exp_name} \
@@ -35,7 +35,7 @@ run.warmup_steps=1000 \
 run.accum_grad_iters=1
 
 exp_name='sqa3d_espresso'
-ckpt='crema_ckpt.pth'
+ckpt='crema_initial.pth'
 CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.run --nproc_per_node=2 --master_port 29506 train.py \
 --cfg-path lavis/projects/crema/train/sqa3d.yaml \
 --options run.output_dir=${result_dir}${exp_name} \

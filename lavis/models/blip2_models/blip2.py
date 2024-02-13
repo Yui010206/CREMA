@@ -62,9 +62,15 @@ class _LoRALayer_multimodal(nn.Module):
             self.dropout_pc = dropout['pc']
 
     def forward(self, x, modular='rgb'):
-        w_b = getattr(self, f'w_b_{modular}')
-        w_a = getattr(self, f'w_a_{modular}')
-        dropout = getattr(self, f'dropout_{modular}')
+
+        if 'skip' in modular:
+            modular_ = modular.split('-')[0]
+        else:
+            modular_ = modular
+
+        w_b = getattr(self, f'w_b_{modular_}')
+        w_a = getattr(self, f'w_a_{modular_}')
+        dropout = getattr(self, f'dropout_{modular_}')
         
         if 'skip' in modular:
             x = self.w(x)
@@ -414,13 +420,13 @@ class Blip2Base(BaseModel):
         return msg
     
     
-    def load_lora(self, lora_ckpt):
-        if lora_ckpt=='':
+    def load_mmqa(self, mmqa_ckpt):
+        if mmqa_ckpt=='':
             return
-        checkpoint = torch.load(lora_ckpt, map_location="cpu")
+        checkpoint = torch.load(mmqa_ckpt, map_location="cpu")
         state_dict = checkpoint["model"]
         msg = self.load_state_dict(state_dict, strict=False)
-        logging.info("load checkpoint from %s" % lora_ckpt)
+        logging.info("load MMQA checkpoint from %s" % mmqa_ckpt)
         
 
 def disabled_train(self, mode=True):
