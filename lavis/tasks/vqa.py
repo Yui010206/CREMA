@@ -359,7 +359,7 @@ class VideoQA(BaseTask):
         assert len(qid)==len(output_text)
         assert len(qid)==len(answer) 
         
-        for a, q, o, f, d in zip(answer, qid, output_text, frame_idx, dis_acc):
+        for a, q, o, f, d in zip(answer, qid, output_text, frame_idx):
             # l =  l[self.ANS_MAPPING[a[-1]]]
             results.append(
                 {
@@ -368,7 +368,7 @@ class VideoQA(BaseTask):
                     "target": self.ANS_MAPPING[a[-1]],
                     "frame_idx": f,
                     # "difficult": n,
-                    'dis_acc': d
+                    # 'dis_acc': d
                 }
             )
 
@@ -399,7 +399,7 @@ class VideoQA(BaseTask):
         dis_acc = 0
         for r in results:    
             qtype = r['qid'].split('_')[0]
-            dis_acc += r['dis_acc']
+            # dis_acc += r['dis_acc']
             if qtype not in qtype_total_dict:
                 qtype_total_dict[qtype] = 1
             else:
