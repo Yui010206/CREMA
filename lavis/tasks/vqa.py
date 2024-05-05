@@ -359,7 +359,7 @@ class VideoQA(BaseTask):
         assert len(qid)==len(output_text)
         assert len(qid)==len(answer) 
         
-        for a, q, o, f, d in zip(answer, qid, output_text, frame_idx):
+        for a, q, o, f in zip(answer, qid, output_text, frame_idx):
             # l =  l[self.ANS_MAPPING[a[-1]]]
             results.append(
                 {
