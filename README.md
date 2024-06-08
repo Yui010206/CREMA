@@ -1,15 +1,15 @@
-# <img src="assets/crema.png" alt="Image description" class="title-icon" style="width: 40px; height: auto;"> CREMA: Multimodal Compositional Video Reasoning via Efficient Modular Adaptation and Fusion
+# <img src="assets/crema.png" alt="Image description" class="title-icon" style="width: 40px; height: auto;"> CREMA: Generalizable and Efficient Video-Language Reasoning via Multimodal Modular Fusion
 
-* Authors: [Shoubin Yu*](https://yui010206.github.io/), [Jaehong Yoon*](https://jaehong31.github.io/), [Mohit Bansal](https://www.cs.unc.edu/~mbansal/)
-* Paper: [arXiv](https://arxiv.org/abs/2402.05889)
-* Project Page: [homepage](https://crema-videollm.github.io/)
-* Online Demo: Coming soon
+[![Project Website](https://img.shields.io/badge/Project-Website-blue)](https://crema-videollm.github.io/)  [![arXiv](https://img.shields.io/badge/arXiv-2402.05889-b31b1b.svg)](https://arxiv.org/abs/2402.05889)   [![HuggingFace](https://img.shields.io/badge/🤗-HuggingFace%20-cyan.svg)](https://huggingface.co/Shoubin/CREMA/tree/main)
+
+### Authors: [Shoubin Yu*](https://yui010206.github.io/), [Jaehong Yoon*](https://jaehong31.github.io/), [Mohit Bansal](https://www.cs.unc.edu/~mbansal/)
+### University of North Carolina at Chapel Hill
 
 <div align=center> 
-<img src="./assets/teaser.png" alt="teaser image" width="450"/>
+<!-- <img src="./assets/teaser.png" alt="teaser image" width="450"/> -->
 </div>
 <br>
-<img src="./assets/method.png" alt="teaser image" width="800"/>
+<img src="./assets/crema_method.png" alt="teaser image" width="1000"/>
 
 
 # Code structure

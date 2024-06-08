@@ -9,8 +9,11 @@ import logging
 import copy
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.cuda.amp import autocast as autocast
 from transformers import T5TokenizerFast, BertTokenizer
+import torch.distributed as dist
+
 
 from lavis.common.registry import registry
 from lavis.models.blip2_models.Qformer import BertConfig, BertLMHeadModel
@@ -99,7 +102,6 @@ class CREMA(Blip2Base):
             # pre-extracted features
             pass
         
-        # print('num_features', self.visual_encoder.num_features) 1408
         # ========= init LLM ============  
         # text backbone
         self.t5_tokenizer = T5TokenizerFast.from_pretrained(t5_model)
@@ -112,7 +114,6 @@ class CREMA(Blip2Base):
             param.data = param.data.bfloat16() 
 
         # ========= init Qformer ============
-       # if 'rgb' in self.modalities or 'depth' in self.modalities or 'flow' in self.modalities or 'norm' in self.modalities:
         self.Qformer, encoder_config = self.init_Multimodal_Qformer(
             num_query_token, num_features, #self.visual_encoder.num_features,
             modulars=self.modalities, 
@@ -125,7 +126,15 @@ class CREMA(Blip2Base):
             layer.output = None
             layer.intermediate = None
         self.num_query_token = num_query_token
-
+        self.mv_embeddings = {}
+        
+        g_size = sum([ww.numel() for nn, ww in self.named_parameters() if len(ww.shape) > 1 and 'attention' in nn and 'rgb' in nn])
+        for md in self.modalities:            
+            setattr(self, f'{md}_gradsel_embed', nn.Parameter(torch.zeros((1, g_size))))
+            
+            new_param = nn.Parameter(torch.zeros((1, g_size)))#.to(self.device)
+            self.register_parameter(f'{md}_gradsel_embed', new_param)
+            
         if 'rgb' in self.modalities:
             self.query_tokens_rgb = nn.Parameter(
                 torch.zeros(1, num_query_token, encoder_config.hidden_size))
@@ -133,6 +142,7 @@ class CREMA(Blip2Base):
             self.t5_proj_rgb = nn.Linear(
                 self.Qformer.config.hidden_size, self.t5_model.config.hidden_size)
             self.ln_rgb = nn.LayerNorm(self.visual_encoder.num_features)
+            
 
         if 'flow' in self.modalities:
             self.query_tokens_flow = nn.Parameter(
@@ -166,7 +176,6 @@ class CREMA(Blip2Base):
                 self.Qformer.config.hidden_size, self.t5_model.config.hidden_size)
             
             self.projection_audio = nn.Linear(self.audio_encoder.num_features, num_features)
-            # nn.init.normal_(self.projection_audio.weight, std=0.01)
             self.ln_audio = nn.LayerNorm(num_features)
             
         if 'pc' in self.modalities:
@@ -181,10 +190,11 @@ class CREMA(Blip2Base):
             self.pos_embedding = pos_model(x).squeeze().cuda()
         
         if 'espresso' in self.task:
-
+            _fusion_input_dim = 2048*(len(self.modalities)-1)
             self.fusion = nn.Sequential(
-                nn.Linear(2048*(len(self.modalities)-1), 2048),
-                )
+                    nn.Linear(_fusion_input_dim, 2048)
+            )
+                
             self.sigmoid = nn.Sigmoid()
             
         self.downstream_task = downstream_task 
@@ -211,8 +221,8 @@ class CREMA(Blip2Base):
         self.audio_prefix = ['Audio: ']
         self.pc_prefix = ['3D Model: ']
         
+                    
     def forward(self, samples):
-
         # rgb visual embedding
         qa_text, answer = samples['qa_input'], samples['qa_output']
         b = len(qa_text)
@@ -253,7 +263,6 @@ class CREMA(Blip2Base):
             max_length=self.max_txt_len, return_tensors="pt").to(device)
         input_text_embeds = self.t5_model.encoder.embed_tokens(input_text.input_ids) 
 
-
         fusion_modal = []
         t5_inputs, t5_atts, t5_query = {}, {}, {}
         for modal in self.modalities:
@@ -266,6 +275,7 @@ class CREMA(Blip2Base):
             inputs_t5 = torch.cat([vid_prefix_embed, inputs_t5_rgb], dim=2) # b, t, n_word + m, c
             atts_t5 = torch.cat([vid_prefix_mask, atts_t5_rgb], dim=2) # b, t, n_word + m 
             
+            MI_loss=0.
             for modal in self.modalities:
                 if modal == 'rgb':
                     continue
@@ -280,27 +290,37 @@ class CREMA(Blip2Base):
                     if 'espresso' in self.task:
                         pc = t5_inputs[modal]
                         pc = pc.unsqueeze(1)
-                        pc = torch.repeat_interleave(pc, self.frame_num, 1) # [16, 4, 32, 2048]
+                        pc = torch.repeat_interleave(pc, self.frame_num, 1)
                         fusion_modal.append(pc)
-  
+
                 if modal in ['audio']:
                     if 'espresso' in self.task:
                         audio = t5_inputs[modal]
                         audio = audio.mean(dim=1)
                         audio = audio.unsqueeze(1)
-                        audio = torch.repeat_interleave(audio, self.frame_num, 1) # [16, 4, 32, 2048]
+                        audio = torch.repeat_interleave(audio, self.frame_num, 1) 
                         fusion_modal.append(audio)
             
             # visual only input
             if 'audio' not in self.modalities and 'pc' not in self.modalities:
                 if 'espresso' in self.task:
-                    fusion_modal = torch.cat(fusion_modal, dim=-1) # 16, 4, 32, 8192
+                    fusion_modal = torch.cat(fusion_modal, dim=-1) 
                     inputs_t5_extra = self.fusion(fusion_modal)
-                    inputs_t5_rgb += self.sigmoid(inputs_t5_extra) * inputs_t5_extra
-                    inputs_t5 = torch.cat([vid_prefix_embed, inputs_t5_rgb], dim=2)
-                    atts_t5 = torch.ones(inputs_t5.size()[:-1], dtype=torch.long).to(device)
-                    inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
-                    atts_t5 = atts_t5.reshape(b, -1)
+                    if 'concat' in self.task:
+                        inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
+                        atts_t5 = atts_t5.reshape(b, -1)
+                        
+                        inputs_t5_extra = self.sigmoid(inputs_t5_extra) * inputs_t5_extra
+                        vpe = vid_prefix_embed.reshape(b, -1, vid_prefix_embed.shape[-1])
+                        inputs_t5_extra = inputs_t5_extra.reshape(b, -1, inputs_t5_extra.shape[-1])
+                        inputs_t5 = torch.cat([inputs_t5, vpe, inputs_t5_extra], dim=1)
+                        atts_t5 = torch.cat([atts_t5, atts_t5], dim=1)
+                    else:
+                        inputs_t5_rgb += self.sigmoid(inputs_t5_extra) * inputs_t5_extra
+                        inputs_t5 = torch.cat([vid_prefix_embed, inputs_t5_rgb], dim=2)
+                        atts_t5 = torch.ones(inputs_t5.size()[:-1], dtype=torch.long).to(device)
+                        inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
+                        atts_t5 = atts_t5.reshape(b, -1)                            
                 else:
                     inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
                     atts_t5 = atts_t5.reshape(b, -1)
@@ -308,13 +328,23 @@ class CREMA(Blip2Base):
             # [F1, F2, F3,..., A]
             elif 'audio' in self.modalities:
                 if 'espresso' in self.task:
-                    fusion_modal = torch.cat(fusion_modal, dim=-1) # 16, 4, 32, 8192
+                    fusion_modal = torch.cat(fusion_modal, dim=-1)
                     inputs_t5_extra = self.fusion(fusion_modal)
-                    inputs_t5_rgb += self.sigmoid(inputs_t5_extra) * inputs_t5_extra
-                    inputs_t5 = torch.cat([vid_prefix_embed, inputs_t5_rgb], dim=2)
-                    atts_t5 = torch.ones(inputs_t5.size()[:-1], dtype=torch.long).to(device)
-                    inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
-                    atts_t5 = atts_t5.reshape(b, -1)
+                    if 'concat' in self.task:
+                        inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
+                        atts_t5 = atts_t5.reshape(b, -1)
+                        
+                        inputs_t5_extra = self.sigmoid(inputs_t5_extra) * inputs_t5_extra
+                        vpe = vid_prefix_embed.reshape(b, -1, vid_prefix_embed.shape[-1])
+                        inputs_t5_extra = inputs_t5_extra.reshape(b, -1, inputs_t5_extra.shape[-1])
+                        inputs_t5 = torch.cat([inputs_t5, vpe, inputs_t5_extra], dim=1)
+                        atts_t5 = torch.cat([atts_t5, atts_t5], dim=1)
+                    else:
+                        inputs_t5_rgb += self.sigmoid(inputs_t5_extra) * inputs_t5_extra
+                        inputs_t5 = torch.cat([vid_prefix_embed, inputs_t5_rgb], dim=2)
+                        atts_t5 = torch.ones(inputs_t5.size()[:-1], dtype=torch.long).to(device)
+                        inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
+                        atts_t5 = atts_t5.reshape(b, -1)                       
                 else:
                     audio_prefix_embed, audio_prefix_mask = self.get_prefix_embedding(self.audio_prefix, b, device) 
                     inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
@@ -323,15 +353,25 @@ class CREMA(Blip2Base):
                     inputs_t5 = torch.cat([inputs_t5, t5_inputs['audio'].reshape(b, -1, t5_inputs['audio'].shape[-1])], dim=1)
                     atts_t5 = torch.cat([atts_t5, t5_atts['audio'].reshape(b, -1)], dim=1)
             
-            elif 'pc' in self.modalities:
-                if 'espresso' in self.task:
-                    fusion_modal = torch.cat(fusion_modal, dim=-1) # 16, 4, 32, 8192
+            elif 'pc' in self.modalities:                
+                if 'espresso' in self.task:                                        
+                    fusion_modal = torch.cat(fusion_modal, dim=-1)
                     inputs_t5_extra = self.fusion(fusion_modal)
-                    inputs_t5_rgb += self.sigmoid(inputs_t5_extra) * inputs_t5_extra
-                    inputs_t5 = torch.cat([vid_prefix_embed, inputs_t5_rgb], dim=2)
-                    atts_t5 = torch.ones(inputs_t5.size()[:-1], dtype=torch.long).to(device)
-                    inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
-                    atts_t5 = atts_t5.reshape(b, -1)
+                    if 'concat' in self.task:
+                        inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
+                        atts_t5 = atts_t5.reshape(b, -1)
+                        
+                        inputs_t5_extra = self.sigmoid(inputs_t5_extra) * inputs_t5_extra
+                        vpe = vid_prefix_embed.reshape(b, -1, vid_prefix_embed.shape[-1])
+                        inputs_t5_extra = inputs_t5_extra.reshape(b, -1, inputs_t5_extra.shape[-1])
+                        inputs_t5 = torch.cat([inputs_t5, vpe, inputs_t5_extra], dim=1)
+                        atts_t5 = torch.cat([atts_t5, atts_t5], dim=1)
+                    else:
+                        inputs_t5_rgb += self.sigmoid(inputs_t5_extra) * inputs_t5_extra
+                        inputs_t5 = torch.cat([vid_prefix_embed, inputs_t5_rgb], dim=2)
+                        atts_t5 = torch.ones(inputs_t5.size()[:-1], dtype=torch.long).to(device)
+                        inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
+                        atts_t5 = atts_t5.reshape(b, -1)                    
                 else:
                     pc_prefix_embed, pc_prefix_mask = self.get_prefix_embedding(self.pc_prefix, b, device) 
                     inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
@@ -353,6 +393,7 @@ class CREMA(Blip2Base):
             inputs_t5 = torch.cat([pc_prefix_embed.squeeze(), inputs_t5], dim=1)
             atts_t5 = torch.cat([pc_prefix_mask.squeeze(), atts_t5], dim=1)
 
+
         inputs_embeds = torch.cat([inputs_t5, input_text_embeds], dim=1)
         encoder_atts = torch.cat([atts_t5, input_text.attention_mask], dim=1)
 
@@ -370,7 +411,7 @@ class CREMA(Blip2Base):
                     decoder_attention_mask=output_tokens_mask, return_dict=True, labels=targets_qa)
             loss = outputs.loss
                     
-        return {'loss': loss}
+        return {'loss': loss+MI_loss}
     
     def encode_input(self, input, modality, training=True):
 
@@ -408,11 +449,9 @@ class CREMA(Blip2Base):
                         embeds.append(encoder(this_frame))
                 atts.append(torch.ones(embeds[j].size()[:-1], dtype=torch.long).to(input.device))
             
-            # print('here', len(embeds), embeds[0].shape) # 2, 3, 256, 768
             embeds = torch.stack(embeds, dim=1)
-            # print('audio_embeds 1', embeds.shape) # 3, 2, 256, 768
             atts = torch.stack(atts, dim=1)
-            embeds = self.projection_audio(embeds) # 3, 2, 256, 1408
+            embeds = self.projection_audio(embeds) 
             embeds = ln(embeds.reshape(-1, embeds.shape[-2], embeds.shape[-1]))
             atts = atts.reshape(-1, atts.shape[-1])
 
@@ -550,7 +589,7 @@ class CREMA(Blip2Base):
                         if 'espresso' in self.task:
                             pc = t5_inputs[modal]
                             pc = pc.unsqueeze(1)
-                            pc = torch.repeat_interleave(pc, self.frame_num, 1) # [16, 4, 32, 2048]
+                            pc = torch.repeat_interleave(pc, self.frame_num, 1) 
                             fusion_modal.append(pc)
 
                     if modal in ['audio']:
@@ -558,7 +597,7 @@ class CREMA(Blip2Base):
                             audio = t5_inputs[modal]
                             audio = audio.mean(dim=1)
                             audio = audio.unsqueeze(1)
-                            audio = torch.repeat_interleave(audio, self.frame_num, 1) # [16, 4, 32, 2048]
+                            audio = torch.repeat_interleave(audio, self.frame_num, 1) 
                             fusion_modal.append(audio)
                         
                 # visual only input
@@ -566,11 +605,25 @@ class CREMA(Blip2Base):
                     if 'espresso' in self.task:
                         fusion_modal = torch.cat(fusion_modal, dim=-1)
                         inputs_t5_extra = self.fusion(fusion_modal)
-                        inputs_t5_rgb += self.sigmoid(inputs_t5_extra) * inputs_t5_extra
-                        inputs_t5 = torch.cat([vid_prefix_embed, inputs_t5_rgb], dim=2)
-                        atts_t5 = torch.ones(inputs_t5.size()[:-1], dtype=torch.long).to(device)
-                        inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
-                        atts_t5 = atts_t5.reshape(b, -1)
+                        
+                        if 'concat' in self.task:
+                            inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
+                            atts_t5 = atts_t5.reshape(b, -1)
+                            
+                            inputs_t5_extra = self.sigmoid(inputs_t5_extra) * inputs_t5_extra
+                            vpe = vid_prefix_embed.reshape(b, -1, vid_prefix_embed.shape[-1])
+                            inputs_t5_extra = inputs_t5_extra.reshape(b, -1, inputs_t5_extra.shape[-1])
+                            inputs_t5 = torch.cat([inputs_t5, vpe, inputs_t5_extra], dim=1)
+                            atts_t5 = torch.cat([atts_t5, atts_t5], dim=1)                        
+                        else:
+                            inputs_t5_rgb += self.sigmoid(inputs_t5_extra) * inputs_t5_extra                        
+                            inputs_t5 = torch.cat([vid_prefix_embed, inputs_t5_rgb], dim=2)
+                            atts_t5 = torch.ones(inputs_t5.size()[:-1], dtype=torch.long).to(device)
+                            inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
+                            atts_t5 = atts_t5.reshape(b, -1)
+                        
+                        
+                        
                     else:
                         inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
                         atts_t5 = atts_t5.reshape(b, -1)
@@ -579,11 +632,21 @@ class CREMA(Blip2Base):
                     if 'espresso' in self.task:
                         fusion_modal = torch.cat(fusion_modal, dim=-1) # 16, 4, 32, 8192
                         inputs_t5_extra = self.fusion(fusion_modal)
-                        inputs_t5_rgb += self.sigmoid(inputs_t5_extra) * inputs_t5_extra
-                        inputs_t5 = torch.cat([vid_prefix_embed, inputs_t5_rgb], dim=2)
-                        atts_t5 = torch.ones(inputs_t5.size()[:-1], dtype=torch.long).to(device)
-                        inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
-                        atts_t5 = atts_t5.reshape(b, -1)
+                        if 'concat' in self.task:
+                            inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
+                            atts_t5 = atts_t5.reshape(b, -1)
+                            
+                            inputs_t5_extra = self.sigmoid(inputs_t5_extra) * inputs_t5_extra
+                            vpe = vid_prefix_embed.reshape(b, -1, vid_prefix_embed.shape[-1])
+                            inputs_t5_extra = inputs_t5_extra.reshape(b, -1, inputs_t5_extra.shape[-1])
+                            inputs_t5 = torch.cat([inputs_t5, vpe, inputs_t5_extra], dim=1)
+                            atts_t5 = torch.cat([atts_t5, atts_t5], dim=1)                        
+                        else:
+                            inputs_t5_rgb += self.sigmoid(inputs_t5_extra) * inputs_t5_extra                        
+                            inputs_t5 = torch.cat([vid_prefix_embed, inputs_t5_rgb], dim=2)
+                            atts_t5 = torch.ones(inputs_t5.size()[:-1], dtype=torch.long).to(device)
+                            inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
+                            atts_t5 = atts_t5.reshape(b, -1)
                     else:
                         audio_prefix_embed, audio_prefix_mask = self.get_prefix_embedding(self.audio_prefix, b, device) 
                         inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
@@ -595,11 +658,21 @@ class CREMA(Blip2Base):
                     if 'espresso' in self.task:
                         fusion_modal = torch.cat(fusion_modal, dim=-1) # 16, 4, 32, 8192
                         inputs_t5_extra = self.fusion(fusion_modal)
-                        inputs_t5_rgb += self.sigmoid(inputs_t5_extra) * inputs_t5_extra
-                        inputs_t5 = torch.cat([vid_prefix_embed, inputs_t5_rgb], dim=2)
-                        atts_t5 = torch.ones(inputs_t5.size()[:-1], dtype=torch.long).to(device)
-                        inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
-                        atts_t5 = atts_t5.reshape(b, -1)
+                        if 'concat' in self.task:
+                            inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
+                            atts_t5 = atts_t5.reshape(b, -1)
+                            
+                            inputs_t5_extra = self.sigmoid(inputs_t5_extra) * inputs_t5_extra
+                            vpe = vid_prefix_embed.reshape(b, -1, vid_prefix_embed.shape[-1])
+                            inputs_t5_extra = inputs_t5_extra.reshape(b, -1, inputs_t5_extra.shape[-1])
+                            inputs_t5 = torch.cat([inputs_t5, vpe, inputs_t5_extra], dim=1)
+                            atts_t5 = torch.cat([atts_t5, atts_t5], dim=1)                        
+                        else:
+                            inputs_t5_rgb += self.sigmoid(inputs_t5_extra) * inputs_t5_extra                        
+                            inputs_t5 = torch.cat([vid_prefix_embed, inputs_t5_rgb], dim=2)
+                            atts_t5 = torch.ones(inputs_t5.size()[:-1], dtype=torch.long).to(device)
+                            inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
+                            atts_t5 = atts_t5.reshape(b, -1)
                     else:
                         pc_prefix_embed, pc_prefix_mask = self.get_prefix_embedding(self.pc_prefix, b, device) 
                         inputs_t5 = inputs_t5.reshape(b, -1, inputs_t5.shape[-1])
@@ -619,8 +692,8 @@ class CREMA(Blip2Base):
                 atts_t5 = t5_atts['pc'].reshape(b, -1)
                 pc_prefix_embed, pc_prefix_mask = self.get_prefix_embedding(self.audio_prefix, b, device) 
                 inputs_t5 = torch.cat([pc_prefix_embed.squeeze(), inputs_t5], dim=1)
-                atts_t5 = torch.cat([pc_prefix_mask.squeeze(), atts_t5], dim=1)
-
+                atts_t5 = torch.cat([pc_prefix_mask.squeeze(), atts_t5], dim=1)            
+            
             inputs_embeds = torch.cat([inputs_t5, input_text_embeds], dim=1)
             encoder_atts = torch.cat([atts_t5, input_text.attention_mask], dim=1)
             

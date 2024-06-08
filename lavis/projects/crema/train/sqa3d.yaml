@@ -14,7 +14,8 @@ model:
   lora_rank: 64
   lora_dropout: 0.1
   lora_ckpt: ''
-
+  es_temperature: 1.8
+  
 datasets:
   sqa3d: # name of the dataset builder
     data_type: [video, pc]
@@ -64,6 +65,16 @@ datasets:
         n_frms: 4
         image_size: 224
 
+    norm_processor:
+      train:
+        name: "blip2_frames_train"
+        n_frms: 4
+        image_size: 224
+      eval:
+        name: "blip_frames_eval"
+        n_frms: 4
+        image_size: 224
+
     build_info:
       annotations:
         train:
@@ -81,10 +92,13 @@ datasets:
             - /nas-ssd2/shoubin/datasets/3D-LLM/finetune_qa_jsonfiles/SQA3D/ScanQA_format/SQA_test.json
           storage: 
             - /nas-ssd2/shoubin/datasets/3D-LLM/finetune_qa_jsonfiles/SQA3D/ScanQA_format/SQA_test.json
+      
       video:
         storage: /nas-ssd2/shoubin/datasets/sqa3d/video/
       pc:
         storage: /nas-ssd2/shoubin/datasets/scannet_feat/
+      norm:
+        storage: /nas-hdd/shoubin/frames/sqa3d_norm/
 
 run:
   task: sqa3d
@@ -104,7 +118,7 @@ run:
   max_len: 40
   min_len: 1
   num_beams: 5
- 
+
   inference_method: "generate"
 
   seed: 42
