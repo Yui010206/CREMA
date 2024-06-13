@@ -59,9 +59,9 @@ and Multimodal Q-Fromer initilized from BLIP-2 can be found [here](https://huggi
 
 | Dataset | Modalities |
 | :---    |    :----  | 
-| SQA3D | [Video+3D+Depth](https://huggingface.co/Shoubin/CREMA/resolve/main/sqa3d_vpd.pth) |
-| MUSIC-AVQA | [Video+Audio+Flow](https://huggingface.co/Shoubin/CREMA/resolve/main/avqa_vaf.pth) |
-| NExT-QA | [Video+Flow+Depth+Normal](https://huggingface.co/Shoubin/CREMA/resolve/main/nextqa_vfdn.pth) |
+| SQA3D | [Video+3D+Depth+Norm](https://huggingface.co/Shoubin/CREMA/blob/main/v2_ckpt/sqa3d_v3dn.pth) |
+| MUSIC-AVQA | [Video+Audio+Flow+Norm+Depth](https://huggingface.co/Shoubin/CREMA/blob/main/v2_ckpt/musicavqa_vadfn.pth) |
+| NExT-QA | [Video+Flow+Depth+Normal](https://huggingface.co/Shoubin/CREMA/blob/main/v2_ckpt/nextqa_vdfn.pth) |
 
 
 # Dataset Preparation & Feature Extraction
@@ -73,6 +73,10 @@ We test our model on:
 
 + [NExT-QA](https://github.com/doc-doc/NExT-QA): we follow SeViLA data [format](https://github.com/Yui010206/SeViLA/tree/main/sevila_data).
 
++ Touch-QA (refomulated from [Touch&Go](https://touch-and-go.github.io/)]: we follow SeViLA data [format](https://github.com/Yui010206/SeViLA/tree/main/sevila_data), and released our data [here](https://huggingface.co/Shoubin/CREMA/tree/main/data/touchqa).
+
++ Thermal-QA (refomulated from [Thermal-IM](https://github.com/ZitianTang/Thermal-IM)]: we follow SeViLA data [format](https://github.com/Yui010206/SeViLA/tree/main/sevila_data), and released our data [here](https://huggingface.co/Shoubin/CREMA/tree/main/data/thermalqa). 
+
 We extract various extra modalities from raw video with pre-train models, please refer to each model repo and paper appendix for more details.
 
 + [Depth map](https://github.com/isl-org/ZoeDepth)
@@ -81,12 +85,14 @@ We extract various extra modalities from raw video with pre-train models, please
 
 + [Surface normals](https://github.com/baegwangbin/surface_normal_uncertainty)
 
-We will share extracted features in the following table soon. 
+We will share extracted features in the following table. 
 | Dataset | Multimodal Features |
 | :----    |    :----  | 
-| SQA3D | [Video Frames](), [Depth Map]()|
-| MUSIC-AVQA | [Video Frames](), [Optical Flow]() |
+| SQA3D | [Video Frames](), [Depth Map](), [Surface Normals]() |
+| MUSIC-AVQA | [Video Frames](), [Optical Flow]() , [Depth Map](), [Surface Normals]() |
 | NExT-QA | [Video Frames](), [Depth Map](), [Optical Flow](), [Surface Normals]() |
+| Touch-QA | [Video Frames](), [Surface Normals]() |
+| Thermal-QA | [Video Frames](), [Depth Map]() |
 
 
 We pre-train MMQA in CRMEA framework with public modality-specific dataset:
@@ -121,7 +127,7 @@ Please cite our paper if you use our models in your works:
 
 ```bibtex
 @article{yu2024crema,
-  title={CREMA: Multimodal Compositional Video Reasoning via Efficient Modular Adaptation and Fusion},
+  title={CREMA: Generalizable and Efficient Video-Language Reasoning via Multimodal Modular Fusion},
   author={Yu, Shoubin and Yoon, Jaehong and Bansal, Mohit},
   journal={arXiv preprint arXiv:2402.05889},
   year={2024}
