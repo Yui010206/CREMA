@@ -73,9 +73,17 @@ We test our model on:
 
 + [NExT-QA](https://github.com/doc-doc/NExT-QA): we follow SeViLA data [format](https://github.com/Yui010206/SeViLA/tree/main/sevila_data).
 
-+ Touch-QA (refomulated from [Touch&Go](https://touch-and-go.github.io/)]: we follow SeViLA data [format](https://github.com/Yui010206/SeViLA/tree/main/sevila_data), and released our data [here](https://huggingface.co/Shoubin/CREMA/tree/main/data/touchqa).
++ Touch-QA (refomulated from [Touch&Go](https://touch-and-go.github.io/)): we follow SeViLA data [format](https://github.com/Yui010206/SeViLA/tree/main/sevila_data), and released our data [here](https://huggingface.co/Shoubin/CREMA/tree/main/data/touchqa).
 
-+ Thermal-QA (refomulated from [Thermal-IM](https://github.com/ZitianTang/Thermal-IM)]: we follow SeViLA data [format](https://github.com/Yui010206/SeViLA/tree/main/sevila_data), and released our data [here](https://huggingface.co/Shoubin/CREMA/tree/main/data/thermalqa). 
++ Thermal-QA (refomulated from [Thermal-IM](https://github.com/ZitianTang/Thermal-IM)): we follow SeViLA data [format](https://github.com/Yui010206/SeViLA/tree/main/sevila_data), and released our data [here](https://huggingface.co/Shoubin/CREMA/tree/main/data/thermalqa). 
+
+To get trimmed Touch-QA and Thermal-QA video frames, you can first download raw videos from each original data project, and preprocess with our [scripts](https://github.com/Yui010206/CREMA/tree/main/tools) after setting the custom data path, by running.
+
+```bash
+python trim_video.py
+
+python decode_frames.py
+```
 
 We extract various extra modalities from raw video with pre-train models, please refer to each model repo and paper appendix for more details.
 
