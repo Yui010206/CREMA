@@ -60,11 +60,8 @@ and Multimodal Q-Fromer initilized from BLIP-2 can be found [here](https://huggi
 | Dataset | Modalities |
 | :---    |    :----  | 
 | SQA3D | [Video+3D+Depth](https://huggingface.co/Shoubin/CREMA/resolve/main/sqa3d_vpd.pth) |
-| SQA3D | [Video+3D+Depth (espresso)](https://huggingface.co/Shoubin/CREMA/resolve/main/sqa3d_vpd_espresso.pth) |
 | MUSIC-AVQA | [Video+Audio+Flow](https://huggingface.co/Shoubin/CREMA/resolve/main/avqa_vaf.pth) |
-| MUSIC-AVQA | [Video+Audio+Flow (espresso)](https://huggingface.co/Shoubin/CREMA/resolve/main/avqa_vaf_espresso.pth) |
 | NExT-QA | [Video+Flow+Depth+Normal](https://huggingface.co/Shoubin/CREMA/resolve/main/nextqa_vfdn.pth) |
-| NExT-QA | [Video+Flow+Depth+Normal (espresso)](https://huggingface.co/Shoubin/CREMA/resolve/main/nextqa_vfdn_espresso.pth) |
 
 
 # Dataset Preparation & Feature Extraction
