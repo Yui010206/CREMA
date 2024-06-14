@@ -11,6 +11,11 @@
 <br>
 <img src="./assets/crema_method.png" alt="teaser image" width="1000"/>
 
+# 🔥 News
+- **Jun 14, 2024**. Check our new [arXiv-version2](https://arxiv.org/abs/2402.05889) for exciting additions to CREMA:
+  - New modality-sequential modular training & modality-adaptive early exit strategy to handle learning with many modalities.
+  - More unique/rare multimodal reasoning tasks (video-touch and video-thermal QA) to further demonstrate the generalizability of CREMA
+
 
 # Code structure
 ```bash
