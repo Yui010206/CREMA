@@ -98,14 +98,14 @@ We extract various extra modalities from raw video with pre-train models, please
 
 + [Surface normals](https://github.com/baegwangbin/surface_normal_uncertainty)
 
-We will share extracted features in the following table. 
+We will share extracted features. 
 | Dataset | Multimodal Features |
 | :----    |    :----  | 
-| SQA3D | [Video Frames](), [Depth Map](), [Surface Normals]() |
-| MUSIC-AVQA | [Video Frames](), [Optical Flow]() , [Depth Map](), [Surface Normals]() |
-| NExT-QA | [Video Frames](), [Depth Map](), [Optical Flow](), [Surface Normals]() |
-| Touch-QA | [Video Frames](), [Surface Normals]() |
-| Thermal-QA | [Video Frames](), [Depth Map]() |
+| SQA3D | [Video Frames](https://drive.google.com/drive/folders/15b_IdwsbLU9iZPxR1Is3pObl-Le8v1ym), [Depth Map](https://drive.google.com/drive/folders/15b_IdwsbLU9iZPxR1Is3pObl-Le8v1ym), [Surface Normals](https://drive.google.com/drive/folders/15b_IdwsbLU9iZPxR1Is3pObl-Le8v1ym) |
+| MUSIC-AVQA | [Video Frames](https://drive.google.com/drive/folders/15b_IdwsbLU9iZPxR1Is3pObl-Le8v1ym), [Optical Flow](https://drive.google.com/drive/folders/15b_IdwsbLU9iZPxR1Is3pObl-Le8v1ym) , [Depth Map](https://drive.google.com/drive/folders/15b_IdwsbLU9iZPxR1Is3pObl-Le8v1ym), [Surface Normals](https://drive.google.com/drive/folders/15b_IdwsbLU9iZPxR1Is3pObl-Le8v1ym) |
+| NExT-QA | [Video Frames](https://drive.google.com/drive/folders/15b_IdwsbLU9iZPxR1Is3pObl-Le8v1ym), [Depth Map](https://drive.google.com/drive/folders/15b_IdwsbLU9iZPxR1Is3pObl-Le8v1ym), [Optical Flow](https://drive.google.com/drive/folders/15b_IdwsbLU9iZPxR1Is3pObl-Le8v1ym), [Surface Normals](https://drive.google.com/drive/folders/15b_IdwsbLU9iZPxR1Is3pObl-Le8v1ym) |
+| Touch-QA | [Video Frames](https://drive.google.com/drive/folders/15b_IdwsbLU9iZPxR1Is3pObl-Le8v1ym), [Surface Normals](https://drive.google.com/drive/folders/15b_IdwsbLU9iZPxR1Is3pObl-Le8v1ym) |
+| Thermal-QA | [Video Frames](https://drive.google.com/drive/folders/15b_IdwsbLU9iZPxR1Is3pObl-Le8v1ym), [Depth Map](https://drive.google.com/drive/folders/15b_IdwsbLU9iZPxR1Is3pObl-Le8v1ym) |
 
 
 We pre-train MMQA in our CRMEA framework with public modality-specific datasets:
