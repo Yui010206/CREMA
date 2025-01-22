@@ -1,4 +1,4 @@
-# <img src="assets/crema.png" alt="Image description" class="title-icon" style="width: 40px; height: auto;"> CREMA: Generalizable and Efficient Video-Language Reasoning via Multimodal Modular Fusion
+# <img src="assets/crema.png" alt="Image description" class="title-icon" style="width: 40px; height: auto;"> [ICLR 2025] CREMA: Generalizable and Efficient Video-Language Reasoning via Multimodal Modular Fusion
 
 [![Project Website](https://img.shields.io/badge/Project-Website-blue)](https://crema-videollm.github.io/)  [![arXiv](https://img.shields.io/badge/arXiv-2402.05889-b31b1b.svg)](https://arxiv.org/abs/2402.05889)   [![HuggingFace](https://img.shields.io/badge/🤗-HuggingFace%20-cyan.svg)](https://huggingface.co/Shoubin/CREMA/tree/main)
 
@@ -12,6 +12,7 @@
 <img src="./assets/crema_method.png" alt="teaser image" width="1000"/>
 
 # 🔥 News
+- **Jan 23, 2025**. CREMA has been accepted to ICLR 2025!
 - **Jun 14, 2024**. Check our new [arXiv-version2](https://arxiv.org/abs/2402.05889) for exciting additions to CREMA:
   - New modality-sequential modular training & modality-adaptive early exit strategy to handle learning with many modalities.
   - More unique/rare multimodal reasoning tasks (video-touch and video-thermal QA) to further demonstrate the generalizability of CREMA
