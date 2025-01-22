@@ -143,6 +143,6 @@ Please cite our paper if you use our models in your works:
 @article{yu2024crema,
   title={CREMA: Generalizable and Efficient Video-Language Reasoning via Multimodal Modular Fusion},
   author={Yu, Shoubin and Yoon, Jaehong and Bansal, Mohit},
-  journal={arXiv preprint arXiv:2402.05889},
-  year={2024}
+  journal={ICLR},
+  year={2025}
 }
