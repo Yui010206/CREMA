@@ -73,6 +73,10 @@ class ThreeDVQADataset(BaseDataset):
             if 'depth' in modality:
                 setattr(self, f"{modality}_root", kwargs[f"{modality}_root"])
                 setattr(self, f"{modality}_processor", kwargs[f"{modality}_processor"])
+
+            if 'norm' in modality:
+                setattr(self, f"{modality}_root", kwargs[f"{modality}_root"])
+                setattr(self, f"{modality}_processor", kwargs[f"{modality}_processor"])
     
     def get_existing_video_annotations(self):
         return [f.split('.')[0] for f in os.listdir(self.video_root)]
@@ -85,6 +89,9 @@ class ThreeDVQADataset(BaseDataset):
     
     def get_depth_path(self, ann):
         return os.path.join(self.depth_root, f'{ann["scene_id"]}/')
+
+    def get_norm_path(self, ann):
+        return os.path.join(self.norm_root, f'{ann["scene_id"]}/')
 
     def __getitem__(self, index):
 
@@ -148,6 +155,12 @@ class ThreeDVQADataset(BaseDataset):
                 depth, _ = getattr(self, f"{modality}_processor")(ann[f"{modality}_path"], clip_proposal=clip, indices=indices, type='depth')
                 out['depth'] = depth
 
+            if modality == 'norm':
+                assert indices is not None
+                ann[f"{modality}_path"] = getattr(self, f"get_{modality}_path")(ann)
+                norm, _ = getattr(self, f"{modality}_processor")(ann[f"{modality}_path"], clip_proposal=clip, indices=indices, type='norm')
+                out['norm'] = norm
+
         return out
 
     def __len__(self):
@@ -198,7 +211,11 @@ class ThreeDVQAEvalDataset(BaseDataset):
                 # todo
                 setattr(self, f"{modality}_root", kwargs[f"{modality}_root"])
                 setattr(self, f"{modality}_processor", kwargs[f"{modality}_processor"])
-    
+
+            if 'norm' in modality:
+                setattr(self, f"{modality}_root", kwargs[f"{modality}_root"])
+                setattr(self, f"{modality}_processor", kwargs[f"{modality}_processor"])
+
     def get_existing_video_annotations(self):
         return [f.split('.')[0] for f in os.listdir(self.video_root)]
 
@@ -211,6 +228,9 @@ class ThreeDVQAEvalDataset(BaseDataset):
     def get_depth_path(self, ann):
         return os.path.join(self.depth_root, f'{ann["scene_id"]}/')
 
+    def get_norm_path(self, ann):
+        return os.path.join(self.norm_root, f'{ann["scene_id"]}/')
+    
     def __getitem__(self, index):
 
         ann = copy.deepcopy(self.annotation[index])
@@ -275,6 +295,12 @@ class ThreeDVQAEvalDataset(BaseDataset):
                 ann[f"{modality}_path"] = getattr(self, f"get_{modality}_path")(ann)
                 depth, _ = getattr(self, f"{modality}_processor")(ann[f"{modality}_path"], clip_proposal=clip, indices=indices, type='depth')
                 out['depth'] = depth
+
+            if modality == 'norm':
+                assert indices is not None
+                ann[f"{modality}_path"] = getattr(self, f"get_{modality}_path")(ann)
+                norm, _ = getattr(self, f"{modality}_processor")(ann[f"{modality}_path"], clip_proposal=clip, indices=indices, type='norm')
+                out['norm'] = norm
 
         return out
 

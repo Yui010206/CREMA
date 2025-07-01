@@ -67,6 +67,12 @@ class MusicAVQADataset(BaseDataset):
     
     def get_frame_path(self, ann):
         return os.path.join(self.frame_root, f'{ann["video_id"]}/')
+    
+    def get_depth_path(self, ann):
+        return os.path.join(self.depth_root, f'{ann["video_id"]}/')
+    
+    def get_norm_path(self, ann):
+        return os.path.join(self.norm_root, f'{ann["video_id"]}/')
 
     def __getitem__(self, index):
         ann = copy.deepcopy(self.annotation[index])
@@ -95,9 +101,21 @@ class MusicAVQADataset(BaseDataset):
                 if modality == 'flow':
                     assert indices is not None
                     ann[f"{modality}_path"] = getattr(self, f"get_{modality}_path")(ann)
-                    flow, _ = getattr(self, f"{modality}_processor")(ann[f"{modality}_path"], clip_proposal=clip, indices=indices, type='depth')
+                    flow, _ = getattr(self, f"{modality}_processor")(ann[f"{modality}_path"], clip_proposal=clip, indices=indices, type='flow')
                     ann['flow'] = flow
-                    
+                 
+                if modality == 'norm':
+                    assert indices is not None
+                    ann[f"{modality}_path"] = getattr(self, f"get_{modality}_path")(ann)
+                    norm, _ = getattr(self, f"{modality}_processor")(ann[f"{modality}_path"], clip_proposal=clip, indices=indices, type='norm')
+                    ann['norm'] = norm
+
+                if modality == 'depth':
+                    assert indices is not None
+                    ann[f"{modality}_path"] = getattr(self, f"get_{modality}_path")(ann)
+                    depth, _ = getattr(self, f"{modality}_processor")(ann[f"{modality}_path"], clip_proposal=clip, indices=indices, type='depth')
+                    ann['depth'] = depth
+                       
                 if modality == 'audio':
                     if 'id' in ann: # aduio pt data
                         ann[f"{modality}_path"] = self.get_pt_audio_path(ann)
